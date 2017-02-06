@@ -12,9 +12,14 @@ class PortUtility(object):
     def __init__(self, music_setup=None, fail_on_unconnected=False):
         self._music_setup = music_setup
         self._fail_on_unconnected = fail_on_unconnected
+        self._published_port_names = []
+        self._history_buffer = None
 
     def _set_music_setup(self, music_setup):
         self._music_setup = music_setup
+
+    def _set_history_buffer(self, buffer):
+        self._history_buffer = buffer
 
     @staticmethod
     def _init_buffer(proxy, initial_value=None, fallback_width=0):
@@ -22,71 +27,82 @@ class PortUtility(object):
         assert width is not None
         if initial_value is not None:
             assert len(initial_value) == width
-            return np.array(initial_value, dtype=np.double)
+            return np.array(initial_value, dtype=np.double), width
         else:
-            return np.zeros(width, dtype=np.double)
+            return np.zeros(width, dtype=np.double), width
+
+    def _port_name_check(self, port_name):
+        assert port_name not in self._published_port_names, \
+            "A port name may only be published once: '{}'".format(port_name)
+        self._published_port_names.append(port_name)
 
     def _handle_unconnected_port(self, msg):
         if self._fail_on_unconnected:
             raise music.MUSICError(msg)
         logger.warning(msg)
 
-    def publish_cont_output(self, port_name, initial_value=None, base=0, fallback_width=0):
+    def _check_parameters(self, port_name, required_params, kwargs):
+        for param_name in required_params:
+            if param_name not in kwargs:
+                raise music.MUSICError("Missing parameter {} for port {}".format(port_name, param_name))
+
+    def publish_cont_output(self, port_name, initial_value=None, fallback_width=0, **kwargs):
         assert self._music_setup is not None
+        self._port_name_check(port_name)
         proxy = self._music_setup.publishContOutput(port_name)
-        buf = PortUtility._init_buffer(proxy, initial_value, fallback_width)
+        buf, width = PortUtility._init_buffer(proxy, initial_value, fallback_width)
         if proxy.isConnected():
-            proxy.map(buf, base=base)
+            proxy.map(buf, **kwargs)
         else:
             self._handle_unconnected_port("Output port {} is not connected".format(port_name))
         return buf
 
-    def publish_cont_input(self, port_name, initial_value=None, base=0, maxBuffered=1, delay=0,
-                           interpolate=False, fallback_width=0):
+    def publish_cont_input(self, port_name, initial_value=None, fallback_width=0, **kwargs):
         assert self._music_setup is not None
+        self._port_name_check(port_name)
         proxy = self._music_setup.publishContInput(port_name)
-        buf = PortUtility._init_buffer(proxy, initial_value, fallback_width)
+        buf, width = PortUtility._init_buffer(proxy, initial_value, fallback_width)
         if proxy.isConnected():
-            proxy.map(buf, base=base, maxBuffered=maxBuffered, delay=delay, interpolate=False)
+            proxy.map(buf, **kwargs)
         else:
             self._handle_unconnected_port("Input port {} is not connected".format(port_name))
         return buf
 
-    def publish_event_input(self, port_name, maxBuffered, accLatency, base, spike_callback):
+    def publish_buffering_cont_input(self, *args, **kwargs):
+        buf = self.publish_cont_input(*args, **kwargs)
+        return self._history_buffer.buffer_cont_input(buf)
+
+    def publish_event_input(self, port_name, spike_callback, **kwargs):
         assert self._music_setup is not None
+        self._port_name_check(port_name)
         proxy = self._music_setup.publishEventInput(port_name)
         if proxy.isConnected():
-            proxy.map(spike_callback, music.Index.GLOBAL, size=proxy.width(), base=base, maxBuffered=maxBuffered,
-                      accLatency=accLatency)
+            proxy.map(spike_callback, music.Index.GLOBAL, size=proxy.width(), **kwargs)
         else:
             self._handle_unconnected_port("Input port {} is not connected".format(port_name))
 
-
-    def open_buffering_event_in_proxy(self, buffer, port_name, maxBuffered, accLatency, base,
+    def publish_buffering_event_input(self, port_name, fallback_width=1,
                                       width_to_n_buffers=lambda size: size, idx_to_buffer=lambda idx: idx,
-                                      fallback_width=0):
+                                      **kwargs):
+        self._port_name_check(port_name)
         proxy = self._music_setup.publishEventInput(port_name)
         width = proxy.width() if proxy.isConnected() else fallback_width
-        spike_buffers = buffer.buffer_event_input(width_to_n_buffers(width))
+        assert self._history_buffer is not None
+        spike_buffers = self._history_buffer.buffer_event_input(width_to_n_buffers(width))
         if proxy.isConnected():
+            self._check_parameters(port_name, ['base'], kwargs)
             proxy.map(lambda time, _, index: spike_buffers[idx_to_buffer(index)].append_spike(time),
-                      music.Index.GLOBAL,
-                      size=width,
-                      base=base,
-                      maxBuffered=maxBuffered,
-                      accLatency=accLatency)
+                      music.Index.GLOBAL, size=width, **kwargs)
         else:
             self._handle_unconnected_port("Input port {} is not connected".format(port_name))
         return spike_buffers
 
-    def publish_event_output(self, port_name, base=0):
+    def publish_event_output(self, port_name, **kwargs):
+        self._port_name_check(port_name)
         proxy = self._music_setup.publishEventOutput(port_name)
         if proxy.isConnected():
-            proxy.map(
-                music.Index.GLOBAL,
-                base=base,
-                size=proxy.width()
-            )
+            self._check_parameters(port_name, ['base'], kwargs)
+            proxy.map(music.Index.GLOBAL, size=proxy.width(), **kwargs)
         else:
             self._handle_unconnected_port("Output port {} is not connected".format(port_name))
             proxy = DummyEventOutput()
