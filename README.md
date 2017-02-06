@@ -12,7 +12,6 @@ while also returning a stub buffer in case of the port being unconnected.
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import numpy as np
 from snn_utils.music.node import PyMusicNode
 
 
