@@ -121,10 +121,10 @@ class Buffer(object):
         self._timed_buffers = []
 
     def buffer_cont_input(self, array_buffer):
-        timed_buffer = buffer.ValueBuffer(self._time_window)
-        self._cont_array_buffers.append((timed_buffer, array_buffer))
-        self._timed_buffers.append(timed_buffer)
-        return timed_buffer
+        timed_buffers = [buffer.ValueBuffer(self._time_window) for i in range(len(array_buffer))]
+        self._cont_array_buffers.append((timed_buffers, array_buffer))
+        self._timed_buffers.extend(timed_buffers)
+        return timed_buffers
 
     def buffer_event_input(self, n_buffers):
         timed_buffers = map(lambda _: buffer.SpikeBuffer(self._time_window), range(n_buffers))
@@ -132,8 +132,9 @@ class Buffer(object):
         return timed_buffers
 
     def update(self, current_time):
-        for timed_buffer, array_buffer in self._cont_array_buffers:
-            timed_buffer.append_value(current_time, *array_buffer)
+        for timed_buffers, array_buffer in self._cont_array_buffers:
+            for i, timed_buffer in enumerate(timed_buffers):
+                timed_buffer.append_value(current_time, array_buffer[i])
         # propagate update to clear buffers
         for timed_buffer in self._timed_buffers:
             timed_buffer.update(current_time)
