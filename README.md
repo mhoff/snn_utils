@@ -67,12 +67,13 @@ if __name__ == '__main__':
 # -*- coding: utf-8 -*-
 
 from snn_utils.music.node import PyMusicNode
+from snn_utils.music import WindowedBuffer
 
 
 class BufferingNode(PyMusicNode):
     def __init__(self):
-        PyMusicNode.__init__(self, time_step=0.02, total_time=100.0, history_buffers={'history': 2.0})
-        self._set_history_buffer(self._get_history_buffer('history'))
+        PyMusicNode.__init__(self, time_step=0.02, total_time=100.0)
+        self._set_buffer(WindowedBuffer(2.0))  # save time windows of 2.0s
 
     def _setup(self, music_setup):
         self._reward_buffer = self.publish_buffering_cont_input('reward_in', fallback_width=1)

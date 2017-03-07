@@ -9,17 +9,23 @@ logger = logging.getLogger(__name__)
 
 
 class PortUtility(object):
+    """
+    Helper class for publishing ports and collecting data on input ports.
+    """
     def __init__(self, music_setup=None, fail_on_unconnected=False):
         self._music_setup = music_setup
         self._fail_on_unconnected = fail_on_unconnected
         self._published_port_names = []
-        self._history_buffer = None
+        self._buffer = None
 
     def _set_music_setup(self, music_setup):
         self._music_setup = music_setup
 
-    def _set_history_buffer(self, buffer):
-        self._history_buffer = buffer
+    def _set_buffer(self, buffer_factory):
+        self._buffer = buffer_factory
+
+    def _get_buffer(self):
+        return self._buffer
 
     @staticmethod
     def _init_buffer(proxy, initial_value=None, fallback_width=0):
@@ -70,7 +76,7 @@ class PortUtility(object):
 
     def publish_buffering_cont_input(self, *args, **kwargs):
         buf = self.publish_cont_input(*args, **kwargs)
-        return self._history_buffer.buffer_cont_input(buf)
+        return self._buffer.buffer_cont_input(buf)
 
     def publish_event_input(self, port_name, spike_callback, **kwargs):
         assert self._music_setup is not None
@@ -87,8 +93,8 @@ class PortUtility(object):
         self._port_name_check(port_name)
         proxy = self._music_setup.publishEventInput(port_name)
         width = proxy.width() if proxy.isConnected() else fallback_width
-        assert self._history_buffer is not None
-        spike_buffers = self._history_buffer.buffer_event_input(width_to_n_buffers(width))
+        assert self._buffer is not None
+        spike_buffers = self._buffer.buffer_event_input(width_to_n_buffers(width))
         if proxy.isConnected():
             self._check_parameters(port_name, ['base'], kwargs)
             proxy.map(lambda time, _, index: spike_buffers[idx_to_buffer(index)].append_spike(time),
@@ -114,27 +120,54 @@ class DummyEventOutput(object):
         pass
 
 
-class Buffer(object):
-    def __init__(self, time_window):
-        self._time_window = time_window
+class BaseBuffer(object):
+    def __init__(self):
         self._cont_array_buffers = []
-        self._timed_buffers = []
+        self._all_buffers = []
+
+    def _create_value_buffer(self):
+        return buffer.ValueBuffer()
+
+    def _create_event_buffer(self):
+        return buffer.SpikeBuffer()
 
     def buffer_cont_input(self, array_buffer):
-        timed_buffers = [buffer.ValueBuffer(self._time_window) for i in range(len(array_buffer))]
-        self._cont_array_buffers.append((timed_buffers, array_buffer))
-        self._timed_buffers.extend(timed_buffers)
-        return timed_buffers
+        buffers = [self._create_value_buffer() for i in range(len(array_buffer))]
+        self._cont_array_buffers.append((buffers, array_buffer))
+        self._all_buffers.extend(buffers)
+        return buffers
 
     def buffer_event_input(self, n_buffers):
-        timed_buffers = map(lambda _: buffer.SpikeBuffer(self._time_window), range(n_buffers))
-        self._timed_buffers.extend(timed_buffers)
-        return timed_buffers
+        buffers = [self._create_event_buffer() for i in range(n_buffers)]
+        self._all_buffers.extend(buffers)
+        return buffers
 
-    def update(self, current_time):
-        for timed_buffers, array_buffer in self._cont_array_buffers:
-            for i, timed_buffer in enumerate(timed_buffers):
-                timed_buffer.append_value(current_time, array_buffer[i])
-        # propagate update to clear buffers
-        for timed_buffer in self._timed_buffers:
-            timed_buffer.update(current_time)
+    def pre_cycle(self, curr_sim_time):
+        for buffers, array_buffer in self._cont_array_buffers:
+            for i, buffer in enumerate(buffers):
+                buffer.append_value(curr_sim_time, array_buffer[i])
+
+    def post_cycle(self, curr_sim_time):
+        pass
+
+
+class WindowedBuffer(BaseBuffer):
+    def __init__(self, time_window):
+        BaseBuffer.__init__(self)
+        self._time_window = time_window
+
+    def _create_value_buffer(self):
+        return buffer.WindowedValueBuffer(self._time_window)
+
+    def _create_event_buffer(self):
+        return buffer.WindowedSpikeBuffer(self._time_window)
+
+    def post_cycle(self, curr_sim_time):
+        for buffer in self._all_buffers:
+            buffer.update(curr_sim_time)
+
+
+class SingleStepBuffer(BaseBuffer):
+    def post_cycle(self, curr_sim_time):
+        for buffer in self._all_buffers:
+            buffer.clear()

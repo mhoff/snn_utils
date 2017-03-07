@@ -3,18 +3,17 @@ import threading
 
 
 class TimeBuffer(object):
-    def __init__(self, time_window):
-        self._time_window = time_window
-        self._times = collections.deque()
+    def __init__(self):
+        self._times = self._create_container()
 
-    def update(self, current_time):
-        threshold = current_time - self._time_window
-        if self._times:
-            time = self._times.popleft()
-            while self._times and time < threshold:
-                time = self._times.popleft()
-            if time >= threshold:
-                self._times.appendleft(time)
+    def _create_container(self):
+        return []
+
+    def clear(self):
+        self._times[:] = []
+
+    def update(self, curr_sim_time):
+        pass
 
     def get_times(self):
         return self._times
@@ -29,43 +28,56 @@ class TimeBuffer(object):
         return self._times[sliced]
 
     def append(self, time):
-        # assert(not self._times or time >= self._times[-1])
         self._times.append(time)
 
 
-class SpikeBuffer(TimeBuffer):
+class WindowedTimeBuffer(TimeBuffer):
     def __init__(self, time_window):
-        TimeBuffer.__init__(self, time_window)
+        TimeBuffer.__init__(self)
+        self._time_window = time_window
 
+    def _create_container(self):
+        return collections.deque()
+
+    def clear(self):
+        self._times.clear()
+
+    def update(self, current_time):
+        threshold = current_time - self._time_window
+        if self._times:
+            time = self._times.popleft()
+            while self._times and time < threshold:
+                time = self._times.popleft()
+            if time >= threshold:
+                self._times.appendleft(time)
+
+
+class SpikeBuffer(TimeBuffer):
     def append_spike(self, time):
         self.append(time)
+
+
+class WindowedSpikeBuffer(WindowedTimeBuffer, SpikeBuffer):
+    def __init__(self, time_window):
+        SpikeBuffer.__init__(self)
+        WindowedTimeBuffer.__init__(self, time_window)
 
     def rate(self):
         return float(len(self)) / self._time_window
 
 
-class ConcurrentSpikeBuffer(SpikeBuffer):
-    def __init__(self, time_window):
-        SpikeBuffer.__init__(self, time_window)
-        self._lock = threading.Lock()
-
-    def append(self, time):
-        with self._lock:
-            SpikeBuffer.append(self, time)
-
-    def rate(self):
-        with self._lock:
-            return SpikeBuffer.rate(self)
-
-
 class ValueBuffer(TimeBuffer):
-    def __init__(self, time_window):
-        TimeBuffer.__init__(self, time_window)
+    def __init__(self):
+        TimeBuffer.__init__(self)
         self._values = []
 
     def append_value(self, time, value):
         self.append(time)
         self._values.append(value)
+
+    def clear(self):
+        TimeBuffer.clear(self)
+        self._values[:] = []
 
     def update(self, current_time):
         TimeBuffer.update(self, current_time)
@@ -82,3 +94,13 @@ class ValueBuffer(TimeBuffer):
 
     def __getitem__(self, sliced):
         return self.get_timed_values()[sliced]
+
+
+class WindowedValueBuffer(WindowedTimeBuffer, ValueBuffer):
+    def __init__(self, time_window):
+        ValueBuffer.__init__(self)
+        WindowedTimeBuffer.__init__(self, time_window)
+
+    def update(self, current_time):
+        WindowedTimeBuffer.update(self, current_time)
+        ValueBuffer.update(self, current_time)

@@ -5,7 +5,7 @@ import music
 from mpi4py import MPI
 import time
 from snn_utils.music import PortUtility
-from snn_utils.music import Buffer
+from snn_utils.music import WindowedBuffer
 
 logger = logging.getLogger(__name__)
 
@@ -22,17 +22,12 @@ class Node(object):
 
 
 class PyMusicNode(Node, PortUtility):
-    def __init__(self, time_step, total_time=None, pre_run_barrier=False, measure_cycle_time=True,
-                 history_buffers=None):
+    def __init__(self, time_step, total_time=None, pre_run_barrier=False, measure_cycle_time=True):
         Node.__init__(self, total_time, pre_run_barrier)
         PortUtility.__init__(self)
         self._time_step = time_step
         self._music_setup = None
         self._measure_cycle_time = measure_cycle_time
-        if history_buffers is not None:
-            self._history_buffers = {name: Buffer(window) for name, window in history_buffers.items()}
-        else:
-            self._history_buffers = {}
 
     @staticmethod
     def __runtime(music_setup, timestep, total_time):
@@ -51,19 +46,15 @@ class PyMusicNode(Node, PortUtility):
     def _run(self, times):
         self._last_cycle_time = 0
         for curr_time in times:
+            if self._get_buffer() is not None:
+                self._get_buffer().pre_cycle(curr_time)
             self._pre_cycle(curr_time)
             before_time = time.time() if self._measure_cycle_time else None
-            self._update_history_buffers(curr_time)
             self._run_single_cycle(curr_time)
             if before_time is not None:
                 self._post_cycle(curr_time, time.time() - before_time)
-
-    def _get_history_buffer(self, name):
-        return self._history_buffers[name]
-
-    def _update_history_buffers(self, current_time):
-        for _, buffer in self._history_buffers.items():
-            buffer.update(current_time)
+            if self._get_buffer() is not None:
+                self._get_buffer().post_cycle(curr_time)
 
     def _pre_run(self, music_setup):
         pass
