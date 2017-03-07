@@ -1,8 +1,10 @@
 from __future__ import absolute_import
 
-import snn_utils.comm as comm
-import zmq
 import Queue
+
+import zmq
+
+import snn_utils.comm as comm
 
 
 class SendServer(comm.AsyncSender):

@@ -1,11 +1,11 @@
 import itertools
 import logging
+import time
 
 import music
 from mpi4py import MPI
-import time
+
 from snn_utils.music import PortUtility
-from snn_utils.music import WindowedBuffer
 
 logger = logging.getLogger(__name__)
 

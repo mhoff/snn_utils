@@ -1,5 +1,4 @@
 import collections
-import threading
 
 
 class TimeBuffer(object):

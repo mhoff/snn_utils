@@ -1,4 +1,5 @@
 import matplotlib.gridspec as gridspec
+
 import plots as plot_widgets
 
 
@@ -155,11 +156,12 @@ class PlotWindowBuilder(object):
         if isinstance(height_ratio, int) or isinstance(height_ratio, float):
             height_ratios = [height_ratio] * len(plots)
         else:
-            assert isinstance(height_ratio, list) and len(height_ratio) == len(plots),\
+            assert isinstance(height_ratio, list) and len(height_ratio) == len(plots), \
                 "{} vs {}".format(height_ratio, plots)
             height_ratios = height_ratio
 
-        row_agg = AggregateRow(border_gap=False, auto_vertical_padding=vertical_padding_ratio, label=label, hlines=hlines)
+        row_agg = AggregateRow(border_gap=False, auto_vertical_padding=vertical_padding_ratio, label=label,
+                               hlines=hlines)
 
         for plot, height_ratio in zip(plots, height_ratios):
             row_agg.add_plot(plot, height_ratio=height_ratio)

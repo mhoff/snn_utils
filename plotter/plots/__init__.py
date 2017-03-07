@@ -1,6 +1,7 @@
+import numpy as np
+
 import matplotlib.ticker as ticker
 from matplotlib.colors import LinearSegmentedColormap
-import numpy as np
 
 
 class EmptyPlot(object):
@@ -38,7 +39,7 @@ class EmptyPlot(object):
 
 
 class Plot(object):
-    def __init__(self, keys,  label, legend, legend_loc, colors):
+    def __init__(self, keys, label, legend, legend_loc, colors):
         self._keys = keys
         self._label = label
         self._legend = legend

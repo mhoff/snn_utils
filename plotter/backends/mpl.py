@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+
 import snn_utils.plotter as plotter
 
 
@@ -44,7 +45,7 @@ class MatplotlibWindow(plotter.PlotWindow):
             self._enabled = not self._enabled
             self._update_window_title()
             print("Plotter: drawing {}".format(["disabled", "enabled"][self._enabled]))
-        elif mouse_event.button == 1000: # TODO
+        elif mouse_event.button == 1000:  # TODO RECORDING CURRENTLY NOT IMPLEMENTED
             # right mouse button
             self._recording = not self._recording
             if self._recording:
@@ -61,8 +62,9 @@ class MatplotlibWindow(plotter.PlotWindow):
                 self._draw()
         if self._enabled:
             plotter.PlotWindow.draw(self)
-        # if self._recording:
-        #     if self._current_recording_session_prefix is None:
-        #         self._current_recording_session_prefix = "{:010d}".format(int(1000 * curr_time))
-        #     self._fig.savefig("res/{}_{:05d}.png".format(self._current_recording_session_prefix, self._next_recording_id))
-        #     self._next_recording_id += 1
+            # if self._recording:
+            #     if self._current_recording_session_prefix is None:
+            #         self._current_recording_session_prefix = "{:010d}".format(int(1000 * curr_time))
+            #     self._fig.savefig("res/{}_{:05d}.png".format(self._current_recording_session_prefix, self._next_recording_id))
+            #     self._next_recording_id += 1
+

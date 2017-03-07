@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import time
+import bisect
 import collections
 import itertools
-import bisect
 import operator
+import time
 
 
 class DataSource(object):
@@ -168,5 +168,5 @@ class ProxyDataSource(DataSource):
             cleanup += (lower_idx if lower_idx else 0) + (len(buffer) - upper_idx if upper_idx else 0)
         print("Clearing buffers: discarding {} elements which are {} [sim-time]; took {:f}s [real-time]."
               .format(cleanup, " and ".join([s.format(v) for s, v in
-                                         zip(["older than {:.2f}s", "younger than {:.2f}s"], [lower, upper]) if v]),
+                                             zip(["older than {:.2f}s", "younger than {:.2f}s"], [lower, upper]) if v]),
                       time.time() - ts_before))

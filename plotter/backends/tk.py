@@ -62,7 +62,7 @@ class PlotFrame(plotter.PlotWindow, Frame):
     def draw(self):
         if self._enabled_var.get() and self._plot_invalidated:
             plotter.PlotWindow.draw(self)
-            #self._plot_invalidated = False
+            # self._plot_invalidated = False
 
     def invalidate(self):
         self._plot_invalidated = True
@@ -90,7 +90,7 @@ class PlotFrameControl(Frame):
         self._enabled_var = BooleanVar()
         self._enabled_var.set(True)
         self._auto_update_btn = Checkbutton(control_frame, text="Auto Update",
-                                               onvalue=True, offvalue=False, variable=self._enabled_var)
+                                            onvalue=True, offvalue=False, variable=self._enabled_var)
         self._auto_update_btn.grid(row=0, rowspan=2, column=2, sticky=W + E + N + S)
 
         self._plot_invalidated = True

@@ -18,11 +18,12 @@ class ReprSerializer(Serializer):
     def deserialize(self, msg):
         return ast.literal_eval(msg)
 
-SERIALIZERS['repr'] = ReprSerializer()
 
+SERIALIZERS['repr'] = ReprSerializer()
 
 try:
     import ujson
+
 
     class UJsonSerializer(Serializer):
         def serialize(self, obj):
@@ -30,6 +31,7 @@ try:
 
         def deserialize(self, msg):
             return ujson.decode(msg)
+
 
     # WARNING: json will transform tuples to strings; this can lead to errors depending on the sent data structures
     SERIALIZERS['ujson'] = UJsonSerializer()

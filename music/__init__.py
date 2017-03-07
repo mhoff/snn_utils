@@ -1,7 +1,7 @@
 import logging
+import numpy as np
 
 import music
-import numpy as np
 
 from snn_utils import buffer
 
@@ -12,6 +12,7 @@ class PortUtility(object):
     """
     Helper class for publishing ports and collecting data on input ports.
     """
+
     def __init__(self, music_setup=None, fail_on_unconnected=False):
         self._music_setup = music_setup
         self._fail_on_unconnected = fail_on_unconnected

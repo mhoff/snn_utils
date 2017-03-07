@@ -1,4 +1,3 @@
-
 class AsyncSender(object):
     def send(self, serialized_data):
         pass
