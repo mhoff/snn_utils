@@ -13,11 +13,11 @@ class PortUtility(object):
     Helper class for publishing ports and collecting data on input ports.
     """
 
-    def __init__(self, music_setup=None, fail_on_unconnected=False):
+    def __init__(self, music_setup=None, fail_on_unconnected=False, buffer=None):
         self._music_setup = music_setup
         self._fail_on_unconnected = fail_on_unconnected
         self._published_port_names = []
-        self._buffer = None
+        self._buffer = buffer
 
     def _set_music_setup(self, music_setup):
         self._music_setup = music_setup
@@ -98,6 +98,7 @@ class PortUtility(object):
         spike_buffers = self._buffer.buffer_event_input(width_to_n_buffers(width))
         if proxy.isConnected():
             self._check_parameters(port_name, ['base'], kwargs)
+            assert kwargs['base'] == 0, "base != 0 not implemented yet"  # TODO
             proxy.map(lambda time, _, index: spike_buffers[idx_to_buffer(index)].append_spike(time),
                       music.Index.GLOBAL, size=width, **kwargs)
         else:
@@ -133,13 +134,13 @@ class BaseBuffer(object):
         return buffer.SpikeBuffer()
 
     def buffer_cont_input(self, array_buffer):
-        buffers = [self._create_value_buffer() for i in range(len(array_buffer))]
+        buffers = [self._create_value_buffer() for _ in range(len(array_buffer))]
         self._cont_array_buffers.append((buffers, array_buffer))
         self._all_buffers.extend(buffers)
         return buffers
 
     def buffer_event_input(self, n_buffers):
-        buffers = [self._create_event_buffer() for i in range(n_buffers)]
+        buffers = [self._create_event_buffer() for _ in range(n_buffers)]
         self._all_buffers.extend(buffers)
         return buffers
 

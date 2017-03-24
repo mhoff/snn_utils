@@ -3,8 +3,11 @@
 import bisect
 import collections
 import itertools
+import logging
 import operator
 import time
+
+logger = logging.getLogger(__name__)
 
 
 class DataSource(object):
@@ -20,6 +23,9 @@ class DataSource(object):
     def get_cont_data(self, keys, time_window=None):
         raise NotImplementedError()
 
+    def get_weight_data(self, key, time_window=None):
+        raise NotImplementedError()
+
     def get_min_time(self):
         raise NotImplementedError()
 
@@ -30,6 +36,7 @@ class DataSource(object):
 class SimpleDataSource(DataSource):
     def __init__(self):
         self._map = collections.defaultdict(list)
+        self._weight_map = {}
 
     def extend_cont_data(self, key, data):
         self._map[key].extend(data)
@@ -37,11 +44,25 @@ class SimpleDataSource(DataSource):
     def extend_event_data(self, key, data):
         self._map[key].extend(data)
 
+    def extend_weight_data(self, key, df):
+        if key not in self._weight_map:
+            self._weight_map[key] = df.copy()
+        else:
+            self._weight_map[key] = df.copy()
+            #self._weight_map[key] = self._weight_map[key].append(df)
+
     def get_cont_data(self, keys, time_window=None):
         return map(lambda key: self._map[key], keys)
 
     def get_event_data(self, keys, time_window=None):
         return map(lambda key: self._map[key], keys)
+
+    def get_weight_data(self, key, time_window=None):
+        df = self._weight_map[key]
+        if time_window is None:
+            return df
+        else:
+            return df[(df.sim_time >= time_window[0]) & (df.sim_time < time_window[1])]
 
     def reset(self):
         self._map.clear()
@@ -96,7 +117,8 @@ class ProxyDataSource(DataSource):
         if self._max_time > curr_time:
             # automatic reset
             if self._auto_reset:
-                print("Simulation reset detected ({} -> {}). Resetting buffers.".format(self._max_time, curr_time))
+                logger.info(
+                    "Simulation reset detected ({} -> {}). Resetting buffers.".format(self._max_time, curr_time))
                 self._reset()
                 self._min_time = curr_time
         self._max_time = curr_time
@@ -166,7 +188,8 @@ class ProxyDataSource(DataSource):
             upper_idx = bisect.bisect_right(times, upper) if upper is not None else None
             buffer[:] = buffer[lower_idx:upper_idx]
             cleanup += (lower_idx if lower_idx else 0) + (len(buffer) - upper_idx if upper_idx else 0)
-        print("Clearing buffers: discarding {} elements which are {} [sim-time]; took {:f}s [real-time]."
-              .format(cleanup, " and ".join([s.format(v) for s, v in
-                                             zip(["older than {:.2f}s", "younger than {:.2f}s"], [lower, upper]) if v]),
-                      time.time() - ts_before))
+        logger.info("Clearing buffers: discarding {} elements which are {} [sim-time]; took {:f}s [real-time]."
+                    .format(cleanup, " and ".join([s.format(v) for s, v in
+                                                   zip(["older than {:.2f}s", "younger than {:.2f}s"], [lower, upper])
+                                                   if v]),
+                            time.time() - ts_before))

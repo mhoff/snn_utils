@@ -5,7 +5,7 @@ import time
 import music
 from mpi4py import MPI
 
-from snn_utils.music import PortUtility
+from snn_utils.comm.music import PortUtility
 
 logger = logging.getLogger(__name__)
 
@@ -26,13 +26,13 @@ class PyMusicNode(Node, PortUtility):
         Node.__init__(self, total_time, pre_run_barrier)
         PortUtility.__init__(self)
         self._time_step = time_step
-        self._music_setup = None
         self._measure_cycle_time = measure_cycle_time
 
     @staticmethod
     def __runtime(music_setup, timestep, total_time):
         if total_time is None:
             raise NotImplementedError("Unlimited simulation not implemented yet.")
+        assert total_time > 0
         max_time = total_time + timestep
         times = music_setup.runtime(timestep)
         # ignore ticks before first timestep is reached
@@ -44,7 +44,6 @@ class PyMusicNode(Node, PortUtility):
         pass
 
     def _run(self, times):
-        self._last_cycle_time = 0
         for curr_time in times:
             if self._get_buffer() is not None:
                 self._get_buffer().pre_cycle(curr_time)

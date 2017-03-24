@@ -42,7 +42,8 @@ class Row(BaseRow):
 
     def fill_figure(self, fig, gs_coord, **build_params):
         self._create_row_ax(fig, gs_coord)
-        sub_gs = gridspec.GridSpecFromSubplotSpec(1, self.n_cols(), subplot_spec=gs_coord)
+        sub_gs = gridspec.GridSpecFromSubplotSpec(1, self.n_cols(), subplot_spec=gs_coord,
+                                                  width_ratios=[1 for _ in range(self.n_cols())])
 
         plots = []
         for col_index, plot in enumerate(self.plots):
@@ -84,7 +85,11 @@ class RowContainer(object):
 
     def _wrap_plot(self, plot, height_ratio, label):
         row = Row(height_ratio=height_ratio, label=label)
-        row.add_plot(plot)
+        if isinstance(plot, list):
+            for p in plot:
+                row.add_plot(p)
+        else:
+            row.add_plot(plot)
         return row
 
     def _add_auto_vertical_padding(self):
@@ -123,7 +128,7 @@ class AggregateRow(RowContainer, BaseRow):
 
         n_rows = self.n_rows()
         n_cols = self.n_cols()
-        assert n_cols == 1, "More than one column is not implemented yet."
+        # assert n_cols == 1, "More than one column is not implemented yet."
         height_ratios = list(map(lambda row: row.height_ratio(), self._rows))
 
         # assert self.width_ratios is None or len(self.width_ratios) == n_cols
@@ -143,15 +148,6 @@ class AggregateRow(RowContainer, BaseRow):
     def n_cols(self):
         return max(map(lambda row: row.n_cols(), self._rows))
 
-
-class PlotWindowBuilder(object):
-    def __init__(self, width_ratios=None, auto_vertical_padding=None):
-        self._width_ratios = width_ratios
-        self._parent_row = AggregateRow(auto_vertical_padding=auto_vertical_padding, x_spines=True, show_x=True)
-
-    def add_row(self, plot, height_ratio=1, label=None):
-        self._parent_row.add_plot(plot, height_ratio=height_ratio, label=label)
-
     def add_row_group(self, plots, vertical_padding_ratio=None, label=None, height_ratio=1, hlines=False):
         if isinstance(height_ratio, int) or isinstance(height_ratio, float):
             height_ratios = [height_ratio] * len(plots)
@@ -166,10 +162,32 @@ class PlotWindowBuilder(object):
         for plot, height_ratio in zip(plots, height_ratios):
             row_agg.add_plot(plot, height_ratio=height_ratio)
 
-        self._parent_row.add_row(row_agg)
+        self.add_row(row_agg)
+
+    def add_plot(self, plot, height_ratio=1, label=None):
+        RowContainer.add_plot(self, plot, height_ratio=height_ratio, label=label)
+
+
+class PlotWindowBuilder(object):
+    def __init__(self, width_ratios=None, auto_vertical_padding=None):
+        self._width_ratios = width_ratios
+        self._parent_row = []
+        self._width_ratios = []
+        self._auto_vertical_padding = auto_vertical_padding
+
+    def add_column(self, width_ratio=1, x_spines=False):
+        agg_row = AggregateRow(auto_vertical_padding=self._auto_vertical_padding, x_spines=x_spines, show_x=x_spines)
+        self._parent_row.append(agg_row)
+        self._width_ratios.append(width_ratio)
+        return agg_row
 
     def build(self, fig):
-        return self._parent_row.fill_figure(fig, gridspec.GridSpec(1, 1, hspace=0)[0])
+        coords = gridspec.GridSpec(1, len(self._parent_row), hspace=0, width_ratios=self._width_ratios)
+
+        plots = []
+        for parent_row, coord in zip(self._parent_row, coords):
+            plots.extend(parent_row.fill_figure(fig, coord))
+        return plots
 
 
 class PlotWindow(object):
@@ -206,14 +224,15 @@ class PlotWindow(object):
             lower_time = max(lower_time, upper_time - self._max_time_window)
 
         for plot in self._plots:
-            plot.update_axis(lower_time, upper_time)
+            if hasattr(plot, 'update_axis'):
+                plot.update_axis(lower_time, upper_time)
 
         if self._quick_draw_init:
             # initial draw for caching of artists
             self._draw()
             self._quick_draw_init = False
         for plot in self._plots:
-            plot.update(self._data_source)
+            plot.update()
             if self._quick_draw:
                 plot.draw()
         if self._quick_draw_update:

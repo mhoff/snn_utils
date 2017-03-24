@@ -1,6 +1,10 @@
+import logging
+
 import matplotlib.pyplot as plt
 
 import snn_utils.plotter as plotter
+
+logger = logging.getLogger(__name__)
 
 
 def configure_matplotlib():
@@ -15,10 +19,6 @@ class MatplotlibWindow(plotter.PlotWindow):
         plotter.PlotWindow.__init__(self, plot_builder, data_source, max_time_window)
 
         self._enabled = enabled
-
-        self._recording = False
-        self._current_recording_session_prefix = None
-        self._next_recording_id = 0
 
         self._layout_on_update = True
         self._fig.canvas.mpl_connect('resize_event', self._on_resize)
@@ -44,14 +44,7 @@ class MatplotlibWindow(plotter.PlotWindow):
             # left mouse button
             self._enabled = not self._enabled
             self._update_window_title()
-            print("Plotter: drawing {}".format(["disabled", "enabled"][self._enabled]))
-        elif mouse_event.button == 1000:  # TODO RECORDING CURRENTLY NOT IMPLEMENTED
-            # right mouse button
-            self._recording = not self._recording
-            if self._recording:
-                self._current_recording_session_prefix = None
-                self._next_recording_id = 0
-            print("Plotter: recording {}".format(["stopped", "started"][self._recording]))
+            logger.info("Plotter: drawing {}".format(["disabled", "enabled"][self._enabled]))
 
     def draw(self):
         self.get_figure().canvas.flush_events()
@@ -62,9 +55,3 @@ class MatplotlibWindow(plotter.PlotWindow):
                 self._draw()
         if self._enabled:
             plotter.PlotWindow.draw(self)
-            # if self._recording:
-            #     if self._current_recording_session_prefix is None:
-            #         self._current_recording_session_prefix = "{:010d}".format(int(1000 * curr_time))
-            #     self._fig.savefig("res/{}_{:05d}.png".format(self._current_recording_session_prefix, self._next_recording_id))
-            #     self._next_recording_id += 1
-

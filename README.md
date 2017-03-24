@@ -1,5 +1,32 @@
 # *snn_utils*: Utilities for Spiking Neural Networks
 
+```
+snn_utils
+├── buffer.py
+├── comm
+│   ├── __init__.py
+│   ├── music
+│   │   ├── __init__.py
+│   │   └── node.py
+│   ├── nest.py
+│   ├── serializer.py
+│   └── zmq
+│       └── __init__.py
+├── __init__.py
+├── plotter
+│   ├── backends
+│   │   ├── __init__.py
+│   │   ├── mpl.py
+│   │   └── tk.py
+│   ├── data_provider.py
+│   ├── __init__.py
+│   ├── interface
+│   │   └── __init__.py
+│   └── plots
+│       └── __init__.py
+└── README.md
+```
+
 ## MUSIC
 
 This package contains utilities for quick music node development.
@@ -16,7 +43,8 @@ TODO: Test examples
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from snn_utils.music.node import PyMusicNode
+import numpy as np
+from snn_utils.comm.music.node import PyMusicNode
 
 
 class SignalNode(PyMusicNode):
@@ -42,7 +70,7 @@ if __name__ == '__main__':
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from snn_utils.music.node import PyMusicNode
+from snn_utils.comm.music.node import PyMusicNode
 
 
 class RelayNode(PyMusicNode):
@@ -66,8 +94,8 @@ if __name__ == '__main__':
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from snn_utils.music.node import PyMusicNode
-from snn_utils.music import WindowedBuffer
+from snn_utils.comm.music.node import PyMusicNode
+from snn_utils.comm.music import WindowedBuffer
 
 
 class BufferingNode(PyMusicNode):
