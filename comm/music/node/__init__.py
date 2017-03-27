@@ -81,19 +81,3 @@ class PyMusicNode(Node, PortUtility):
         self._run(times)
         self._post_run()
 
-
-class PyNestNode(Node):
-    def __init__(self, total_time=None, pre_run_barrier=False):
-        Node.__init__(self, total_time, pre_run_barrier)
-
-    def _setup(self):
-        pass
-
-    def _run(self):
-        pass
-
-    def main(self):
-        self._setup()
-        self._execute_pre_run_barrier()
-        logger.info("Starting NEST simulation...")
-        self._run()
