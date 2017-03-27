@@ -1,8 +1,8 @@
 import logging
 import sys
 import time
-from snn_utils.comm.zmq import MultiSubscriber
 
+from snn_utils.comm.zmq import MultiSubscriber
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +26,7 @@ class Master(object):
     """
     This class combines a communication sink with a simple periodic task scheduler.
     """
+
     def __init__(self, poll_timeout=None):
         if poll_timeout is None:
             self._comm = MultiSubscriber()

@@ -3,10 +3,9 @@ from __future__ import absolute_import
 from Tkinter import *
 from ttk import *
 
+import snn_utils.plotter as plotter
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-
-import snn_utils.plotter as plotter
 
 
 class FormFrame(Frame):

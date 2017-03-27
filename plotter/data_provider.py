@@ -49,7 +49,7 @@ class SimpleDataSource(DataSource):
             self._weight_map[key] = df.copy()
         else:
             self._weight_map[key] = df.copy()
-            #self._weight_map[key] = self._weight_map[key].append(df)
+            # self._weight_map[key] = self._weight_map[key].append(df)
 
     def get_cont_data(self, keys, time_window=None):
         return map(lambda key: self._map[key], keys)

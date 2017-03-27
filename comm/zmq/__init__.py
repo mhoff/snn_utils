@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+
 import zmq
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,7 @@ class Publisher(ContextHelper):
     """
         Minimal wrapper around a ZMQ publisher.
     """
+
     def __init__(self, port, context=None, host="*", transport='tcp'):
         ContextHelper.__init__(self, context)
         address = "{}://{}:{}".format(transport, host, port)

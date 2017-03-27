@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import logging
 
 import nest
+
 from snn_utils.comm.music.node import Node
 
 logger = logging.getLogger(__name__)
