@@ -172,17 +172,16 @@ class PhasePlot(TimeSeriesPlot):
         self._ax.yaxis.set_ticks([])
 
     def _create_primitives(self):
-        self._ps = {self._keys[0]: map(lambda ls: self._ax.plot([], [], **ls)[0], self._line_styles)}
+        self._ps = map(lambda ls: self._ax.plot([], [], **ls)[0], self._line_styles)
 
     def get_artists(self):
-        return self._ps[self._keys[0]]
+        return self._ps
 
     def update(self):
         TimeSeriesPlot.update(self)
-        key = self._keys[0]
-        signal = self._get_data_source().get_cont_data(self._keys, self._ax.get_xlim())[key]
+        signal = np.array(self._get_data_source().get_cont_data(self._keys, self._ax.get_xlim())[0])
         times, values = np.rollaxis(signal, 1)
-        for value_id, ps in enumerate(self._ps[key], start=self._drop_zero):
+        for value_id, ps in enumerate(self._ps, start=self._drop_zero):
             transformed_values = values.copy()
             transformed_values[np.where(values != value_id)] = np.NaN
             transformed_values[np.where(values == value_id)] = 0
