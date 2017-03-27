@@ -51,7 +51,7 @@ class PortUtility(object):
     def _check_parameters(self, port_name, required_params, kwargs):
         for param_name in required_params:
             if param_name not in kwargs:
-                raise music.MUSICError("Missing parameter {} for port {}".format(port_name, param_name))
+                raise music.MUSICError("Missing parameter {} for port {}".format(param_name, port_name))
 
     def publish_cont_output(self, port_name, initial_value=None, fallback_width=0, **kwargs):
         assert self._music_setup is not None
