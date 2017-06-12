@@ -1,4 +1,8 @@
-import UserDict
+try:
+    from UserDict import UserDict
+except ImportError:
+    from collections import UserDict
+
 import collections
 import itertools
 
@@ -16,7 +20,7 @@ def _merge(*dicts, **kwargs):
     return result
 
 
-class MusicPort(UserDict.UserDict):
+class MusicPort(UserDict):
     """A MusicPort represents the local proxy for an either incoming or outgoing MUSIC connection.
 
     :param name: The absolute path of this port, e.g. "node.in".
@@ -38,7 +42,7 @@ class MusicPort(UserDict.UserDict):
     EVENT_OUT = collections.namedtuple('EVENT_OUT', ['maxBuffered', 'perm', 'base', 'index_type', 'size'])
 
     def __init__(self, name, params=None):
-        UserDict.UserDict.__init__(self, dict=params)
+        UserDict.__init__(self, dict=params)
         self.name = name
 
     def __repr__(self):

@@ -1,5 +1,6 @@
 import ast
 import logging
+import pickle
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,17 @@ class ReprSerializer(Serializer):
 
 
 SERIALIZERS['repr'] = ReprSerializer()
+
+
+class PickleSerializer(Serializer):
+    def _serialize(self, obj):
+        return pickle.dumps(obj)
+
+    def _deserialize(self, msg):
+        return pickle.loads(msg)
+
+
+SERIALIZERS['pickle'] = PickleSerializer()
 
 try:
     import ujson
