@@ -52,10 +52,10 @@ class SimpleDataSource(DataSource):
             # self._weight_map[key] = self._weight_map[key].append(df)
 
     def get_cont_data(self, keys, time_window=None):
-        return map(lambda key: self._map[key], keys)
+        return [self._map[key] for key in keys]
 
     def get_event_data(self, keys, time_window=None):
-        return map(lambda key: self._map[key], keys)
+        return [self._map[key] for key in keys]
 
     def get_weight_data(self, key, time_window=None):
         df = self._weight_map[key]
@@ -93,16 +93,22 @@ class ProxyDataSource(DataSource):
         assert self._sender
         self._map['event'][key] = list(enumerate(buffers))
 
+    @staticmethod
+    def _filter_dict_values(d):
+        r = {}
+        for k, v in d.items():
+            if isinstance(v, dict):
+                v = ProxyDataSource._filter_dict_values(v)
+            if v:
+                r[k] = v
+        return r
+
     def dump_delta(self, curr_time):
         assert self._sender
 
-        event_updates = list(
-            # send only those buffers (with index) which actually contain data
-            # e.g. [ ('activity_in', [ (3, [1, 3]), (6, [0, 2]), ... ]), ....]
-            filter(lambda (key, updates): updates,
-                   [(key, filter(lambda (i, buffer): buffer, buffers)) for key, buffers in self._map['event'].items()]
-                   )
-        )
+        # send only those buffers (with index) which actually contain data
+        # e.g. [ ('activity_in', [ (3, [1, 3]), (6, [0, 2]), ... ]), ....]
+        event_updates = ProxyDataSource._filter_dict_values(self._map['event'])
 
         result = [list(self._map['cont'].items())]
         if event_updates:
@@ -134,34 +140,34 @@ class ProxyDataSource(DataSource):
     def get_cont_data(self, keys, time_window=None):
         assert not self._sender
         if time_window is None:
-            return map(lambda key: self._map[key], keys)
+            return [self._map[key] for key in keys]
         else:
             lower, upper = time_window
             assert lower >= self.get_min_time()
             assert upper <= self.get_max_time()
-            return map(lambda key: list(
-                itertools.takewhile(
-                    lambda (t, v): t < upper,
-                    itertools.dropwhile(
-                        lambda (t, v): t < lower,
-                        self._map[key]))),
-                       keys)
+
+            data = collections.defaultdict(list)
+            for key in keys:
+                for t, v in self._map[key]:
+                    if lower < t < upper:
+                        data[key].append((t, v))
+            return dict(data)
 
     def get_event_data(self, keys, time_window=None):
         assert not self._sender
         if time_window is None:
-            return map(lambda key: self._map[key], keys)
+            return [self._map[key] for key in keys]
         else:
             lower, upper = time_window
             assert lower >= self.get_min_time()
             assert upper <= self.get_max_time()
-            return map(lambda key: list(
-                itertools.takewhile(
-                    lambda t: t < upper,
-                    itertools.dropwhile(
-                        lambda t: t < lower,
-                        self._map[key]))),
-                       keys)
+
+            data = collections.defaultdict(list)
+            for key in keys:
+                for t in self._map[key]:
+                    if lower < t < upper:
+                        data[key].append(t)
+            return dict(data)
 
     def _reset(self):
         assert not self._sender
@@ -183,7 +189,7 @@ class ProxyDataSource(DataSource):
             times = buffer
             if times and (isinstance(times[0], tuple) or isinstance(times[0], list)):
                 # continuous
-                times = map(operator.itemgetter(0), times)
+                times = list(map(operator.itemgetter(0), times))
             lower_idx = bisect.bisect_left(times, lower) if lower is not None else None
             upper_idx = bisect.bisect_right(times, upper) if upper is not None else None
             buffer[:] = buffer[lower_idx:upper_idx]

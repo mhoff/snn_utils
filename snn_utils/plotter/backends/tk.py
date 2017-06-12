@@ -1,7 +1,7 @@
-from __future__ import absolute_import
 
-from Tkinter import *
-from ttk import *
+
+from tkinter import *
+from tkinter.ttk import *
 
 import snn_utils.plotter as plotter
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
