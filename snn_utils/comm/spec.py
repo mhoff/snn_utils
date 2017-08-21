@@ -99,9 +99,15 @@ class Node(object):
         return self._ports
 
     def port(self, port_name):
+        assert isinstance(port_name, str)
         return self._create_port(port_name)
 
+    def has_port(self, port_name):
+        assert isinstance(port_name, str)
+        return port_name in self._ports
+
     def __getitem__(self, port_name):
+        assert isinstance(port_name, str)
         return self.port(port_name)
 
 
@@ -192,7 +198,7 @@ class MUSICConfig(object):
 def gen_socket_ports(node_sizes, base_port):
     port_gen = itertools.count(base_port)
     result = {}
-    for node, size in node_sizes.items():
+    for node, size in sorted(node_sizes.items()):
         assert size > 0
         for rank in range(size):
             result[(node, rank)] = next(port_gen)

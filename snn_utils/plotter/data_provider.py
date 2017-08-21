@@ -2,7 +2,6 @@
 
 import bisect
 import collections
-import itertools
 import logging
 import operator
 import time
@@ -91,7 +90,7 @@ class ProxyDataSource(DataSource):
 
     def map_event_buffers(self, key, buffers):
         assert self._sender
-        self._map['event'][key] = list(enumerate(buffers))
+        self._map['event'][key] = dict(enumerate(buffers))
 
     @staticmethod
     def _filter_dict_values(d):
@@ -111,6 +110,7 @@ class ProxyDataSource(DataSource):
         event_updates = ProxyDataSource._filter_dict_values(self._map['event'])
 
         result = [list(self._map['cont'].items())]
+
         if event_updates:
             result.append(event_updates)
         return curr_time, result
@@ -120,7 +120,8 @@ class ProxyDataSource(DataSource):
 
         if self._min_time is None:
             self._min_time = curr_time
-        if self._max_time > curr_time:
+
+        if self._max_time is not None and self._max_time > curr_time:
             # automatic reset
             if self._auto_reset:
                 logger.info(
@@ -133,8 +134,8 @@ class ProxyDataSource(DataSource):
         for key, buffer in updates[0]:
             self._map[key].extend(buffer)
         if len(updates) > 1:
-            for key, buffer_map in updates[1]:
-                for i, buffer in buffer_map:
+            for key, buffer_map in updates[1].items():
+                for i, buffer in buffer_map.items():
                     self._map[(key, int(i))].extend(buffer)
 
     def get_cont_data(self, keys, time_window=None):
@@ -146,12 +147,10 @@ class ProxyDataSource(DataSource):
             assert lower >= self.get_min_time()
             assert upper <= self.get_max_time()
 
-            data = collections.defaultdict(list)
-            for key in keys:
-                for t, v in self._map[key]:
-                    if lower < t < upper:
-                        data[key].append((t, v))
-            return dict(data)
+            data = [[] for _ in range(len(keys))]
+            for key, ts in zip(keys, data):
+                ts[:] = filter(lambda t_v: lower < t_v[0] < upper, self._map[key])
+            return data
 
     def get_event_data(self, keys, time_window=None):
         assert not self._sender
@@ -162,12 +161,10 @@ class ProxyDataSource(DataSource):
             assert lower >= self.get_min_time()
             assert upper <= self.get_max_time()
 
-            data = collections.defaultdict(list)
-            for key in keys:
-                for t in self._map[key]:
-                    if lower < t < upper:
-                        data[key].append(t)
-            return dict(data)
+            data = [[] for _ in range(len(keys))]
+            for key, ts in zip(keys, data):
+                ts[:] = filter(lambda t: lower < t < upper, self._map[key])
+            return data
 
     def _reset(self):
         assert not self._sender
@@ -184,6 +181,7 @@ class ProxyDataSource(DataSource):
         assert lower is not None or upper is not None
         assert lower is None or upper is None or lower <= upper
         cleanup = 0
+
         ts_before = time.time()
         for key, buffer in self._map.items():
             times = buffer

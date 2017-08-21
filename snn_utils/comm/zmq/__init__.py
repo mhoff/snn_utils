@@ -1,5 +1,5 @@
 
-
+import time
 import logging
 import zmq
 
@@ -52,7 +52,7 @@ class MultiSubscriber(ContextHelper):
         logger.info("Subscribing to {}".format(address))
         sock = self._context.socket(zmq.SUB)
         sock.connect(address)
-        sock.setsockopt(zmq.SUBSCRIBE, prefix)
+        sock.setsockopt_string(zmq.SUBSCRIBE, prefix)
 
         if multipart:
             def receive():
@@ -63,31 +63,33 @@ class MultiSubscriber(ContextHelper):
 
         def handle():
             msg = receive()
+
             try:
                 data = msg
                 if deserialize:
                     if multipart:
-                        data = [elem if i == 0 else deserialize(elem) for i, elem in enumerate(msg)]
+                        data = [elem.decode() if i == 0 else deserialize(elem) for i, elem in enumerate(msg)]
                     else:
                         data = deserialize(msg)
                 return callback(data)
-            except Exception as e:
-                logger.error("Error occurred while handling message '{}'".format(msg))
-                logger.exception(e.message)
+            except:
+                logger.exception("Error occurred while handling message '{}'".format(msg))
 
         self._handler[sock] = handle
         self._poller.register(sock, zmq.POLLIN)
 
-    def tick(self):
+    def tick(self, max_polls=1000):
         # exhaustive poll
         polled = []
         exhausted = False
-        while not exhausted:
+        polls = 0
+        while not exhausted and polls < max_polls:
             for sock, kind in polled:
                 assert kind is zmq.POLLIN
                 self._handler[sock]()
             polled = self._poller.poll(self._poll_timeout)
             exhausted = not polled
+            polls += 1
 
     def close(self):
         logger.info("Closing {} sockets.".format(len(self._handler.keys())))

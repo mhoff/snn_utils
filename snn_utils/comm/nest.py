@@ -38,4 +38,4 @@ class WeightCommunicator(object):
         for key, (conns, msg) in self._conn_spec.items():
             msg['sim_time'] = sim_time
             msg['weight'] = nest.GetStatus(conns, 'weight')
-            self._send(["{prefix}/{key}".format(prefix=self._prefix, key=key), self._serialize(msg)])
+            self._send(["{prefix}/{key}".format(prefix=self._prefix, key=key).encode(), self._serialize(msg)])

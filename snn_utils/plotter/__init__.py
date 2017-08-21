@@ -146,7 +146,7 @@ class AggregateRow(RowContainer, BaseRow):
         return dynamic_plots
 
     def n_cols(self):
-        return max([row.n_cols() for row in self._rows])
+        return max([row.n_cols() for row in self._rows if row.n_cols() is not None])
 
     def add_row_group(self, plots, vertical_padding_ratio=None, label=None, height_ratio=1, hlines=False):
         if isinstance(height_ratio, int) or isinstance(height_ratio, float):
@@ -175,8 +175,9 @@ class PlotWindowBuilder(object):
         self._width_ratios = []
         self._auto_vertical_padding = auto_vertical_padding
 
-    def add_column(self, width_ratio=1, x_spines=False):
-        agg_row = AggregateRow(auto_vertical_padding=self._auto_vertical_padding, x_spines=x_spines, show_x=x_spines)
+    def add_column(self, width_ratio=1, x_spines=False, label=None):
+        agg_row = AggregateRow(auto_vertical_padding=self._auto_vertical_padding, x_spines=x_spines, show_x=x_spines,
+                               label=label)
         self._parent_row.append(agg_row)
         self._width_ratios.append(width_ratio)
         return agg_row

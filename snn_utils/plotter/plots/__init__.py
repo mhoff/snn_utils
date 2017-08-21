@@ -254,7 +254,7 @@ class SpikeTrainPlot(TimeSeriesPlot):
         TimeSeriesPlot.update(self)
         for key, times in zip(self._keys, self._get_data_source().get_event_data(self._keys, self._ax.get_xlim())):
             # FIXME inefficient
-            offsets = np.rollaxis(np.array([times, np.ones_like(times) * self._keys.index(key)]), 1)
+            offsets = np.rollaxis(np.array([times, np.ones_like(times, dtype=int) * self._keys.index(key)]), 1)
             self._ps[key].set_offsets(offsets)
 
 
@@ -265,7 +265,7 @@ class SpikeMapPlot(Plot):
         self._positions = list(map(key_to_xy, keys))
         self._n_cols = max([p[0] for p in self._positions]) + 1
         self._n_rows = max([p[1] for p in self._positions]) + 1
-        self._data = np.zeros(shape=(self._n_cols, self._n_rows))
+        self._data = np.zeros(shape=(self._n_rows, self._n_cols))
         self._xlim = (0, 0)
         self._time_window = time_window if time_window is not None else np.inf
         self._events_to_value = events_to_value
